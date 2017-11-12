@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<FIRMWARE>
+    <MODEL>
+        <NAME>SNH-1011N</NAME>
+        <MAJOR>2</MAJOR>
+        <MINOR>13</MINOR>
+        <DATE>141027</DATE>
+        <FIRMWARE_FILE>http://www.samsungsmartcam.com/firmware/snh1011.tgz</FIRMWARE_FILE>
+    </MODEL>
+    <MODEL>
+        <NAME>SNH-1011NV</NAME>
+        <MAJOR>2</MAJOR>
+        <MINOR>13</MINOR>
+        <DATE>141027</DATE>
+        <FIRMWARE_FILE>http://www.samsungsmartcam.com/firmware/snh1011nv.tgz</FIRMWARE_FILE>
+    </MODEL>
+</FIRMWARE>
